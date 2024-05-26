@@ -13,7 +13,7 @@ def get_content_list(url):
     urls = []
     # Find all 'article' tags in the soup
     articles = soup.find_all('article')
-# TODO: добавить пагинацию страницы
+# TODO: добавить пагинацию страницы 
     
     # For each article, get the 'data-scroll-id' attribute
     scroll_ids = [article.get('data-scroll-id') for article in articles]
@@ -53,5 +53,6 @@ def main():
     #         writer.writerow([title, price])
 
 if __name__ == '__main__':
+    
     main()
 
