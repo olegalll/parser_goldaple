@@ -2,4 +2,7 @@ config.py
 other
 venv
 __pycache__
-
+db_old.py
+database
+jsons
+selenium_wrap_old.py
