@@ -1,3 +1,5 @@
 config.py
 other
+venv
+__pycache__
 

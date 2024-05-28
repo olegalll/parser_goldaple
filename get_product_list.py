@@ -1,56 +1,65 @@
 import requests
-from bs4 import BeautifulSoup
-import csv
+import json
+import os
 
 
-def get_soup(url):
-    r = requests.get(url)
-    return BeautifulSoup(r.text, 'lxml')
+# Импортируем данные для запросов к API
+from list_api_request_cnt_pages import url as pages_url, headers as pages_headers, cookies as pages_cookies, payload as pages_payload
+from list_api_request_options import url as options_url, headers as options_headers, cookies as options_cookies, payload as options_payload
 
-def get_content_list(url):
-    # Get the BeautifulSoup object for the given url
-    soup = get_soup(url)
-    urls = []
-    # Find all 'article' tags in the soup
-    articles = soup.find_all('article')
-# TODO: добавить пагинацию страницы 
+# Функция для получения количества страниц с продуктами
+def get_cnt_pages_list():
+    r = requests.post(pages_url, headers=pages_headers, cookies=pages_cookies, json=pages_payload)
+    response_data = r.json()['data']['productsCount']
+    return response_data
+
+# Функция для отправки запроса к API с определенной страницей
+def download_options(name_json, page=1):
+    options_payload['pageNumber'] = page
+    r = requests.post(options_url, headers=options_headers, cookies=options_cookies, json=options_payload)
+    data = r.json()
+    with open(name_json, 'w') as f:
+        json.dump(data, f)
+
+# Функция для получения содержимого списка продуктов
+def get_content_list(name_json):
+    with open(name_json, 'r') as f:
+        data = json.load(f)
     
-    # For each article, get the 'data-scroll-id' attribute
-    scroll_ids = [article.get('data-scroll-id') for article in articles]
-    # For each article, find all 'meta' tags with itemprop='name' and get their 'content' attribute
-    full_name = [[meta.get('content') for meta in article.find_all('meta', itemprop='name')] for article in articles]
-    # For each article, find the 'a' tag and get its 'href' attribute
-    product_paths = [article.find('a').get('href') if article.find('a') else None for article in articles]
-    # For each article, find the 'div' tags with specific 'data-test-id' attributes and get their text content
-    prices = [(int(article.find('div', {'data-test-id': 'old-price'}).text.strip().replace(' ', '').replace('₽', '')) if article.find('div', {'data-test-id': 'old-price'}) else None,
-                int(article.find('div', {'data-test-id': 'actual-price'}).text.strip().replace(' ', '').replace('₽', '')) if article.find('div', {'data-test-id': 'actual-price'}) else None) for article in articles]
+    products = []
+    for product in data['data']['products']:
+        product_info = {
+            'itemId': product['itemId'],
+            'brand': product['brand'],
+            'name': product['name'],
+            'actual_amount': product['price']['actual']['amount'] if product['price']['actual'] is not None else None,
+            'old_amount': product['price']['old']['amount'] if product['price']['old'] is not None else None
+        }
+        products.append(product_info)
+    return products
 
-    # For each article, create a dictionary with the extracted details and append it to the urls list
-    for i in range(len(articles)):
-        urls.append({
-            'price': prices[i],
-            'full_name': full_name[i],
-            'scroll_id': scroll_ids[i],
-            'product_path': product_paths[i]
-        })
-    print(urls)
 
+
+def delete_options(name_json):
+    if os.path.exists('response.json'):
+        os.remove('response.json')
 
 
 def main():
-    url = 'https://goldapple.ru/makijazh?calculatedprices=22-4053'
-    get_content_list(url)
+    # total_pages = get_cnt_pages_list() / 24
+    total_pages = 2
+    name_json = 'response.json'
+
+    for page_num in range(1, total_pages + 1):
+        # download_options(name_json, page_num)
+        get_content_list(name_json)
     # TODO: добавить сохранение в базу данных
+        # delete_options(name_json)
+
+
+
+
     # TODO: написать парсер для каждой карточки
-
-
-    # with open('data.csv', 'w', newline='') as f:
-    #     writer = csv.writer(f)
-    #     writer.writerow(['title', 'price'])
-    #     for product in soup.find_all('div', class_='product-item'):
-    #         title = product.find('a', class_='product-item__title').text
-    #         price = product.find('span', class_='price').text
-    #         writer.writerow([title, price])
 
 if __name__ == '__main__':
     
