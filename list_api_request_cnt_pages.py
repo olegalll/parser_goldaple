@@ -1,39 +1,43 @@
-""" 
-CHECK: Проверить, что все фильтры в фильтрах:
--стоимость до 4053 руб
--в наличие (вкл) - товаров сейчас показывает 12786 из 16169
--город Москва 
--адрес МКАД 32-й, 3
-"""
-
 url = 'https://goldapple.ru/front/api/catalog/filters'
 
 method = 'POST'
 
-payload = {
-    "categoryId": 1000000003,
-    "cityId": "0c5b2444-70a0-4932-980c-b4dc0d3f02b5",
-    "cityDistrict": "Чертаново Южное",
-    "geoPolygons": ["EKB-000000370", "EKB-000000437"],
-    "filters": [
+payload_products = {
+    "categoryId":1000000003,
+    "cityId":"0c5b2444-70a0-4932-980c-b4dc0d3f02b5",
+    "cityDistrict":"Чертаново Южное",
+    "geoPolygons":[
+        "EKB-000000370",
+        "EKB-000000437"
+    ],
+    "filters":[
         {
-            "currentMinValue": {
-                "amount": 22,
-                "currency": "RUB",
-                "denominator": 1
+            "currentMinValue":{
+                "amount":22,
+                "currency":"RUB",
+                "denominator":1
             },
-            "currentMaxValue": {
-                "amount": 4053,
-                "currency": "RUB",
-                "denominator": 1
+            "currentMaxValue":{
+                "amount":4053,
+                "currency":"RUB",
+                "denominator":1
             },
-            "id": "63568a61bf461b4b2bde3b1a",
-            "type": "rangeType",
-            "name": "CalculatedPrices",
-            "key": "calculatedprices"
+            "id":"63568a61bf461b4b2bde3b1a",
+            "type":"rangeType",
+            "name":"CalculatedPrices",
+            "key":"calculatedprices"
+        },
+        {
+            "value":'true',
+            "id":"63568bc7bf461b4b2bde3b23",
+            "type":"checkType",
+            "name":"StoreStocks",
+            "key":"storestocks"
         }
     ]
-}
+    }
+
+
 
 headers = {
     "Accept": "application/json, text/plain, */*",
@@ -67,4 +71,3 @@ cookies = {
     "advcake_track_url": "%3D20240513YyNVibjMU4K2HpCAvnMMqIYDvxVGf5ZSwEAiie58cWH22Cn48DVLauzd07yiXqBHcpqKgmurLLtfofjjoVYjLIwb%2FIDv%2FwzriqsESq9tDybSPPSDb4F6jqVFbzabY9WjU1O%2Bn8b0ZCPhy7g5cT9uw%2F2aMdhVjM0Mkj1W%2BnvRBswuF8ajBllcyCQjADOTORsPd4HmRKWCtVYcu%2FwAaz99t28LAdfkxUQ4mkTQZOtRvENDeYAlBEsFZHHaEINM3ZpXfrIsIcMO%2FFynR2%2FrLeLK8PsGpOJ3AuFCyniFdwd13BEjdCsDQfWLgcIzOErWrss4vwq7JBFsHgCSiCalni6g%2FXJhD6cd1z41zjWa21LkE4wQrorkirV88%2BfRaDnXNTlIg9kxfZHphM4RJfbFoEDdKRcZ%2F2MtRCx4qx%2BFiMyRYAl18ALWBs9eKnCDhw5Ewn75mSnyQpE%2B0dfSyy0DSVUbWdsvd9WN19BUf%2B3DKFrqN3Tbqx0IRNSFk%2FesJ7UeTvlmmR7WjaXzIqQIxwE7sZ1Q9mBJB%2BcbmG7pwsuLXn%2BTzuzK%2BCkJA3RgCmw4vMpWKURtSCH1emLlt1dU5cuHva8baEpDuUvtGi%2F7hqTEpfxTWgOzPJil58eW8o0Ksthfn7fyDlVNZKqxUyjnlLcHN%2BmCy2VHMCZVmvPY39VaEthkYsPhCv6G3V1Zpk0%3D",
     "section_data_ids": "%7B%22geolocation%22%3A1716745375%2C%22adult_goods%22%3A1716745374%2C%22cart%22%3A1716745374%7D"
 }
-

@@ -40,7 +40,7 @@ def main():
     name_json = 'jsons/response.json'
 
     for page_num in range(1, total_pages + 1):
-        # download_options(name_json, page_num)
+        download_options(name_json, page_num)
         products_list = get_content_list(name_json)
         db.save_list_products(connection, products_list)
         # delete_options(name_json)

@@ -17,7 +17,8 @@ def check_table_list_products(connection):
     if not cursor.fetchone():
         cursor.execute(f'''
             CREATE TABLE list_products (
-                itemId INTEGER PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                itemId INTEGER,
                 mainVariantItemId INTEGER,
                 brand TEXT,
                 name TEXT,
@@ -51,3 +52,5 @@ def save_list_products(connection, products_list):
                         :link)
         ''', product)
     connection.commit()
+
+

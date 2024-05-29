@@ -2,22 +2,43 @@ url = 'https://goldapple.ru/front/api/catalog/products'
 
 method = 'POST'
 
-payload = {"categoryId":1000000003,
-        "cityId":"0c5b2444-70a0-4932-980c-b4dc0d3f02b5",
-        "cityDistrict":"Чертаново Южное",
-        "geoPolygons":["EKB-000000370","EKB-000000437"],
-        "pageNumber":1,
-        "filters":[{"currentMinValue":{"amount":22,
-                                        "currency":"RUB",
-                                        "denominator":1},
-                                        "currentMaxValue":{"amount":4053,
-                                                            "currency":"RUB",
-                                                            "denominator":1},
-                                                            "id":"63568a61bf461b4b2bde3b1a",
-                                                            "type":"rangeType",
-                                                            "name":"CalculatedPrices",
-                                                            "key":"calculatedprices"}]
+payload = {
+    "categoryId":1000000003,
+    "cityId":"0c5b2444-70a0-4932-980c-b4dc0d3f02b5",
+    "cityDistrict":"Чертаново Южное",
+    "geoPolygons":[
+        "EKB-000000370",
+        "EKB-000000437"
+    ],
+    "pageNumber":1,
+    "filters":[
+        {
+            "currentMinValue":{
+                "amount":22,
+                "currency":"RUB",
+                "denominator":1
+            },
+            "currentMaxValue":{
+                "amount":4053,
+                "currency":"RUB",
+                "denominator":1
+            },
+            "id":"63568a61bf461b4b2bde3b1a",
+            "type":"rangeType",
+            "name":"CalculatedPrices",
+            "key":"calculatedprices"
+        },
+        {
+            "value":'true',
+            "id":"63568bc7bf461b4b2bde3b23",
+            "type":"checkType",
+            "name":"StoreStocks",
+            "key":"storestocks"
         }
+    ]
+}
+
+
 
 headers = {
     "authority": "goldapple.ru",
