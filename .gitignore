@@ -6,3 +6,7 @@ db_old.py
 database
 jsons
 selenium_wrap_old.py
+*.log
+*.json
+*txt
+*xlsx

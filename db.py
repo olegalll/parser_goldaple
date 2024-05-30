@@ -32,25 +32,24 @@ def check_table_list_products(connection):
 
 def save_list_products(connection, products_list):
     cursor = connection.cursor()
-    for product in products_list:
-        cursor.execute('''
-            INSERT INTO list_products (
-                        itemId,
-                        mainVariantItemId, 
-                        brand, 
-                        name, 
-                        actual_amount, 
-                        old_amount, 
-                        link)
-            VALUES (
-                        :itemId,
-                        :mainVariantItemId, 
-                        :brand, 
-                        :name, 
-                        :actual_amount, 
-                        :old_amount, 
-                        :link)
-        ''', product)
+    cursor.executemany('''
+        INSERT INTO list_products (
+                    itemId,
+                    mainVariantItemId, 
+                    brand, 
+                    name, 
+                    actual_amount, 
+                    old_amount, 
+                    link)
+        VALUES (
+                    :itemId,
+                    :mainVariantItemId, 
+                    :brand, 
+                    :name, 
+                    :actual_amount, 
+                    :old_amount, 
+                    :link)
+    ''', products_list)
     connection.commit()
 
 

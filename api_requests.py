@@ -9,19 +9,38 @@ from payload_builder import PayloadBuilder
 
 # Функция для получения количества страниц с продуктами
 def get_cnt_pages_list():
-    response = RequestWrapper.post_filters(url='https://goldapple.ru/front/api/catalog/filters')
+    payload = PayloadBuilder().set_category(1000000003).set_filters().get_payload()
+    wrapper = RequestWrapper(payload)
+    response = wrapper.post_filters()
     response_data = response['data']['productsCount']
     return response_data
 
-# Функция для отправки запроса к API с определенной страницей
+# Функция для получения списка продуктов
 def download_options(name_json, page=1):
     payload = PayloadBuilder().set_category(1000000003).set_page_number(page).set_filters().get_payload()
     request = RequestWrapper(payload)
-    response = request.post_options(url='https://goldapple.ru/front/api/catalog/filters')
+    response = request.post_options()
     with open(name_json, 'w') as f:
         json.dump(response, f)
+
+def get_item(item_id: str):
+    payload = PayloadBuilder().set_item(item_id).get_payload()
+    request = RequestWrapper(payload)
+    response = request.post_item()
+    response_dict = {option['name']: option['dateInfo'] for option in response['data']['options']}
+
+    courier = response_dict.get('курьер', None)
+    store_pickup = response_dict.get('самовывоз из магазина', None)
+
+    return courier, store_pickup
 
 
 def delete_options(name_json):
     if os.path.exists(name_json):
         os.remove(name_json)
+
+
+if __name__ == '__main__':
+    item = get_item('19000003031')
+    print(item)
+    print('Done')

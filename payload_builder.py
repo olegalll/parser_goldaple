@@ -3,15 +3,15 @@ class PayloadBuilder:
         self.payload = self._get_geo()
         # self.payload.update(func())
     
-    def set_item(self, itemId):
+    def set_item(self, itemId: str):
         self.payload.update({'itemId': itemId})
         return self
     
-    def set_category(self, categoryId):
+    def set_category(self, categoryId: int):
         self.payload.update({'categoryId': categoryId})
         return self
     
-    def set_page_number(self, page_number):
+    def set_page_number(self, page_number: int):
         self.payload.update({'pageNumber': page_number})
         return self
     
@@ -46,7 +46,7 @@ class PayloadBuilder:
                     "key":"calculatedprices"
                 },
                 {
-                    "value":'true',
+                    "value": True,
                     "id":"63568bc7bf461b4b2bde3b23",
                     "type":"checkType",
                     "name":"StoreStocks",
@@ -70,3 +70,6 @@ class PayloadBuilder:
 
 # payload = PayloadBuilder().set_item('19000003031').get_payload()
 # payload = PayloadBuilder().set_category(1000000003).set_page_number(1).set_filters().get_payload()
+
+
+{"itemId":"19000003031","cityId":"0c5b2444-70a0-4932-980c-b4dc0d3f02b5","cityDistrict":"Чертаново Южное","geoPolygons":["EKB-000000370","EKB-000000437"]}
