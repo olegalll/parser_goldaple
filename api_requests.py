@@ -1,7 +1,5 @@
-import requests
 import json
 import os
-
 
 # Импортируем данные для запросов к API
 from request_wrapper import RequestWrapper
@@ -16,13 +14,13 @@ def get_cnt_pages_list():
     return response_data
 
 # Функция для получения списка продуктов
-def download_options(name_json, page=1):
+def download_list(name_json='list.json', page=1):
     payload = PayloadBuilder().set_category(1000000003).set_page_number(page).set_filters().get_payload()
     request = RequestWrapper(payload)
     response = request.post_options()
-    with open(name_json, 'w') as f:
-        json.dump(response, f)
+    return response
 
+# Функция для получения даты доставки
 def get_item(item_id: str):
     payload = PayloadBuilder().set_item(item_id).get_payload()
     request = RequestWrapper(payload)
@@ -33,6 +31,16 @@ def get_item(item_id: str):
     store_pickup = response_dict.get('самовывоз из магазина', None)
 
     return courier, store_pickup
+
+def get_detials_json(url):
+    request = RequestWrapper()
+    
+    response = request.get_details(url)
+    
+    # # Сохраняем ответ в файл JSON
+    # with open('jsons/detail_json.json', 'w', encoding='utf-8') as f:
+    #     json.dump(response, f, indent=4, ensure_ascii=False)
+    return response
 
 
 def delete_options(name_json):

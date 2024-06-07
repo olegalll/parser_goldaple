@@ -10,3 +10,5 @@ selenium_wrap_old.py
 *.json
 *txt
 *xlsx
+build
+dist
