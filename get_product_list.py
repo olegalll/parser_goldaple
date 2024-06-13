@@ -16,7 +16,7 @@ import db
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Функция для получения содержимого списка продуктов
-def get_content_list(list, connection):
+def get_content_list(list):
     data = list
     
     products_list = []
@@ -35,11 +35,7 @@ def get_content_list(list, connection):
             'store_pickup': store_pickup, # TODO: удалить
             'image_link': None
         }
-        details = db.get_details(product['itemId'], connection)
-        if details is not None:
-            product_info.update(details)
         products_list.append(product_info)
-        
 
     return products_list
 
@@ -59,28 +55,33 @@ def main():
 
     # Получаем количество страниц с продуктами
     total_pages = get_cnt_pages_list() // 24
-    # total_pages = 5
 
     # Создаем пустой DataFrame
     df = pd.DataFrame()
+    df_list = []
 
     start_time = time.time()  # Запоминаем время начала выполнения цикла
     for page_num in tqdm(range(1, total_pages + 1)): 
         logging.info(f'Start processing page {page_num}')
         list = download_list(page_num)
         time.sleep(1)
-        products_list = get_content_list(list, connection)
-        df = pd.concat([df, pd.DataFrame(products_list)], ignore_index=True)
-        df = df.drop_duplicates(subset=['itemId'], keep='last')
-        logging.info(f'Finished processing page {page_num}')
+        products_list = get_content_list(list)
+        df_list.append(pd.DataFrame(products_list))
+    df = pd.concat(df_list, ignore_index=True).drop_duplicates(subset=['itemId'], keep='last')
+
+        # Получаем данные из базы данных
+    details_columns, details_data = db.get_details_and_new_link_by_article(connection)
+    details = pd.DataFrame(details_data, columns=details_columns)
+    details['article'] = details['article'].astype(str)
+    # Объединяем products_data_df и details
+    products_data_df = pd.merge(df, details, on='Product_id', how='left')    # logging.info(f'Finished processing page {page_num}')
 
     end_time = time.time()  # Запоминаем время окончания выполнения цикла
     logging.info(f'Total time for processing {total_pages} pages: {end_time - start_time} seconds')
 
 
     # Вызываем функцию для сохранения DataFrame в файл Excel
-    save_df_to_excel(df)
-
+    save_df_to_excel(products_data_df)
     db.close_connection(connection)
 
 

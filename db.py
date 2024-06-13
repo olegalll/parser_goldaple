@@ -78,6 +78,30 @@ def get_details(item_id, connection):
 
     return details
 
+
+def get_details_and_new_link_by_article(connection):
+    cursor = connection.cursor()
+    query = """
+        SELECT 
+        GROUP_CONCAT(i.new_link, ',') as images,
+            d.*
+        FROM details d
+        LEFT JOIN images i
+            ON d.article = i.article
+        GROUP BY d.article
+        """
+    try:
+        cursor.execute(query)
+        result = cursor.fetchall()  # Получаем все строки данных
+        headers = [column[0] for column in cursor.description]  # Получаем заголовки столбцов
+        if result is None:
+            return [], []  # Возвращаем пустые списки, если результат запроса None
+        else:
+            return headers, [list(row) for row in result]  # Возвращаем заголовки и данные
+    except sqlite3.Error as e:
+        print(f"Произошла ошибка при получении данных: {e}")
+        return [], []  # Возвращаем пустые списки в случае ошибки
+
 def save_list_products(connection, products_list):
     cursor = connection.cursor()
     cursor.executemany('''
