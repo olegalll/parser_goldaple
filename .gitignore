@@ -12,3 +12,5 @@ selenium_wrap_old.py
 *xlsx
 build
 dist
+*.zip
+images_goldapple

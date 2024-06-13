@@ -1,4 +1,3 @@
-import json
 import os
 
 # Импортируем данные для запросов к API
@@ -14,7 +13,7 @@ def get_cnt_pages_list():
     return response_data
 
 # Функция для получения списка продуктов
-def download_list(name_json='list.json', page=1):
+def download_list(page=1):
     payload = PayloadBuilder().set_category(1000000003).set_page_number(page).set_filters().get_payload()
     request = RequestWrapper(payload)
     response = request.post_options()
@@ -32,7 +31,7 @@ def get_item(item_id: str):
 
     return courier, store_pickup
 
-def get_detials_json(url):
+def get_details_json(url):
     request = RequestWrapper()
     
     response = request.get_details(url)

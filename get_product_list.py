@@ -2,7 +2,6 @@
 """
 
 import os
-import json
 import pandas as pd
 import logging
 import time
@@ -33,7 +32,7 @@ def get_content_list(list, connection):
             'old_amount': product['price']['old']['amount'] if product['price']['old'] is not None else None,
             'link': f'https://goldapple.ru{product["url"]}',
             'courier': courier,
-            'store_pickup': store_pickup,
+            'store_pickup': store_pickup, # TODO: удалить
             'image_link': None
         }
         details = db.get_details(product['itemId'], connection)
@@ -66,12 +65,13 @@ def main():
     df = pd.DataFrame()
 
     start_time = time.time()  # Запоминаем время начала выполнения цикла
-    for page_num in tqdm(range(1, total_pages + 1)):
+    for page_num in tqdm(range(1, total_pages + 1)): 
         logging.info(f'Start processing page {page_num}')
         list = download_list(page_num)
         time.sleep(1)
         products_list = get_content_list(list, connection)
         df = pd.concat([df, pd.DataFrame(products_list)], ignore_index=True)
+        df = df.drop_duplicates(subset=['itemId'], keep='last')
         logging.info(f'Finished processing page {page_num}')
 
     end_time = time.time()  # Запоминаем время окончания выполнения цикла
