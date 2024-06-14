@@ -83,9 +83,9 @@ def get_details_and_new_link_by_article(connection):
     cursor = connection.cursor()
     query = """
         SELECT 
-        GROUP_CONCAT(i.new_link, ',') as images,
+        GROUP_CONCAT(i.new_link, ';') as images,
             d.*
-        FROM details d
+        FROM details_products d
         LEFT JOIN images i
             ON d.article = i.article
         GROUP BY d.article

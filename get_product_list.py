@@ -24,7 +24,7 @@ def get_content_list(list):
         # courier, store_pickup = get_item(product['itemId']) # Закомментировал, так отказались из-за скорости работы
         courier, store_pickup = None, None
         product_info = {
-            'itemId': product['itemId'],
+            'item_id': product['itemId'],
             'mainVariantItemId': product['mainVariantItemId'],
             'brand': product['brand'],
             'name': product['name'],
@@ -33,18 +33,28 @@ def get_content_list(list):
             'link': f'https://goldapple.ru{product["url"]}',
             'courier': courier,
             'store_pickup': store_pickup, # TODO: удалить
-            'image_link': None
         }
         products_list.append(product_info)
 
     return products_list
 
+def clean_for_excel(text):
+    # Функция для очистки строки от символов, которые могут вызвать ошибки в Excel
+    # Excel не допускает символы в диапазоне 0x00 - 0x1F (кроме 0x09, 0x0A и 0x0D) и 0x7F
+    if not isinstance(text, str):
+        return text
+    return ''.join(char for char in text if char == '\t' or char == '\n' or char == '\r' or 0x20 <= ord(char) <= 0x7E or ord(char) > 0x7F)
 
 def save_df_to_excel(df):
     # Проверяем, существует ли папка 'result'
     if not os.path.exists('result'):
         # Если нет, создаем ее
         os.makedirs('result')
+
+    # Очищаем DataFrame от недопустимых символов
+    for col in df.columns:
+        if df[col].dtype == object:  # Если столбец содержит строки
+            df[col] = df[col].apply(clean_for_excel)
 
     # Теперь мы можем безопасно сохранить наш DataFrame в файл Excel
     df.to_excel('result/products.xlsx', index=False)
@@ -61,20 +71,22 @@ def main():
     df_list = []
 
     start_time = time.time()  # Запоминаем время начала выполнения цикла
+    # for page_num in tqdm(range(1, 1 + 1)): 
     for page_num in tqdm(range(1, total_pages + 1)): 
         logging.info(f'Start processing page {page_num}')
         list = download_list(page_num)
         time.sleep(1)
         products_list = get_content_list(list)
         df_list.append(pd.DataFrame(products_list))
-    df = pd.concat(df_list, ignore_index=True).drop_duplicates(subset=['itemId'], keep='last')
+    df = pd.concat(df_list, ignore_index=True).drop_duplicates(subset=['item_id'], keep='last')
 
         # Получаем данные из базы данных
     details_columns, details_data = db.get_details_and_new_link_by_article(connection)
     details = pd.DataFrame(details_data, columns=details_columns)
-    details['article'] = details['article'].astype(str)
+    details['item_id'] = details['item_id'].astype(str)
     # Объединяем products_data_df и details
-    products_data_df = pd.merge(df, details, on='Product_id', how='left')    # logging.info(f'Finished processing page {page_num}')
+    products_data_df = pd.merge(df, details, on='item_id', how='left')    
+    # logging.info(f'Finished processing page {page_num}')
 
     end_time = time.time()  # Запоминаем время окончания выполнения цикла
     logging.info(f'Total time for processing {total_pages} pages: {end_time - start_time} seconds')

@@ -1,4 +1,3 @@
-import requests
 from PIL import Image
 from io import BytesIO
 import os
@@ -10,31 +9,58 @@ import time
 import shutil
 import logging
 from tqdm import tqdm
+import aiohttp
 
 import db 
 import alarm_bot
 from config import server, username, password
 
+# Добавляем декоратор для измерения времени выполнения функций
+def log_time_async(func):
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = await func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = (end_time - start_time) * 100  # Время в сотых долях секунды
+        logger.info(f'{func.__name__} выполнена за {elapsed_time:.2f} сотых секунды')
+        return result
+    return wrapper
+
+# Для синхронных функций аналогичный декоратор, но без async/await
+def log_time(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = (end_time - start_time) * 100  # Время в сотых долях секунды
+        logger.info(f'{func.__name__} выполнена за {elapsed_time:.2f} сотых секунды')
+        return result
+    return wrapper
+
 # Настройка логгера
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def download_image(image_url, localpath):
+# @log_time_async
+async def download_image(image_url, localpath):
     try:
-        image_response = requests.get(image_url)
-        if image_response.status_code == 200:
-            img = Image.open(BytesIO(image_response.content))
-            format = img.format if img.format else 'JPEG'  # Если формат не определен, используем JPEG по умолчанию
-            extension = f'.{format.lower()}'
-            if not os.path.splitext(localpath)[1]:  # Если в localpath нет расширения файла
-                localpath += extension  # Добавляем расширение файла в соответствии с форматом изображения
-            img.save(localpath, format, quality=100)  # Сохраняем в исходном формате
-            return extension  # Возвращаем расширение файла
+        async with aiohttp.ClientSession() as session:
+            async with session.get(image_url) as response:
+                if response.status == 200:
+                    image_data = await response.read()
+                    img = Image.open(BytesIO(image_data))
+                    format = img.format if img.format else 'webp'  # Если формат не определен, используем webp по умолчанию
+                    extension = f'.{format.lower()}'
+                    if not os.path.splitext(localpath)[1]:  # Если в localpath нет расширения файла
+                        localpath += extension  # Добавляем расширение файла в соответствии с форматом изображения
+                    img.save(localpath, format, quality=100)  # Сохраняем в исходном формате
+                    return extension  # Возвращаем расширение файла
     except Exception as e:
         logger.error(f'Error in download_image: {e}')
         return None
 
-def save_images(connection):
+# @log_time_async
+async def save_images(connection):
     try:
         # logger.info('Starting save_images')
         images_data = db.get_old_link(connection)
@@ -47,7 +73,7 @@ def save_images(connection):
             base_localpath = f'images_goldapple/{image["article"]}/{str(image["image_id"])}'
             localpath_dir = os.path.join('images_goldapple', str(image['article']))
             os.makedirs(localpath_dir, exist_ok=True)
-            extension = download_image(image['old_link'], base_localpath)  # Получаем расширение файла из download_image
+            extension = await download_image(image['old_link'], base_localpath)  # Получаем расширение файла из download_image
             if extension:
                 localpath = f'{base_localpath}{extension}'  # Формируем полный путь с расширением
                 localpaths.append(localpath)
@@ -61,6 +87,7 @@ def save_images(connection):
         logger.error(f'Error in save_images: {e}')
         return None
 
+# @log_time
 def connect_sftp_server(server, username, password):
     try:
         # logger.info('Starting connect_sftp_server')
@@ -74,6 +101,7 @@ def connect_sftp_server(server, username, password):
         logger.error(f'Error in connect_sftp_server: {e}')
         return None, None
 
+# @log_time
 def create_remote_directory(sftp, remote_directory):
     try:
         # logger.info(f'Starting create_remote_directory for {remote_directory}')
@@ -90,6 +118,7 @@ def create_remote_directory(sftp, remote_directory):
     except Exception as e:
         logger.error(f'Error in create_remote_directory: {e}')
 
+# @log_time
 def tar_files(source_folder, output_tar):
     try:
         # logger.info(f'Starting tar_files for {source_folder}')
@@ -99,7 +128,7 @@ def tar_files(source_folder, output_tar):
     except Exception as e:
         logger.error(f'Error in tar_files: {e}')
 
-
+# @log_time
 def clear_directory(directory):
     try:
         # logger.info(f'Starting clear_directory for {directory}')
@@ -116,6 +145,7 @@ def clear_directory(directory):
     except Exception as e:
         logger.error(f'Error in clear_directory: {e}')
 
+# @log_time
 def upload_images(ssh, sftp, localpaths):
     try:
         # logger.info('Starting upload_images')
@@ -127,13 +157,13 @@ def upload_images(ssh, sftp, localpaths):
         # Передача файла на удаленный сервер
         try:
             sftp.put(output_tar, remote_tar)
-            logger.info(f"Файл {output_tar} успешно передан на сервер в {remote_tar}.")
+            # logger.info(f"Файл {output_tar} успешно передан на сервер в {remote_tar}.")
         except Exception as e:
             logger.error(f"Ошибка при передаче файла {output_tar}: {e}")
 
         # Команда для распаковки и удаления архива
         untar_and_remove_command = f'tar -xf {remote_tar} -C {remote_tar_dir} && rm {remote_tar}'
-        logger.info(f"Сформирована команда для выполнения: {untar_and_remove_command}")
+        # logger.info(f"Сформирована команда для выполнения: {untar_and_remove_command}")
 
         # Выполнение команды на удаленном сервере
         try:
@@ -167,6 +197,7 @@ def upload_images(ssh, sftp, localpaths):
     except Exception as e:
         logger.error(f'Error in upload_images: {e}')
 
+# @log_time
 def close_sftp_server(ssh, sftp):
     try:
         # logger.info('Closing SFTP and SSH connections')
@@ -176,9 +207,9 @@ def close_sftp_server(ssh, sftp):
         logger.error(f'Error in close_sftp_server: {e}')
 
 
-
-def upload_images_to_server(connection):
-    cnt = db.get_cnt_images_null(connection) / 15
+# @log_time_async
+async def upload_images_to_server(connection):
+    cnt = db.get_cnt_images_null(connection)
     pbar = tqdm(total=cnt, dynamic_ncols=True)
 
     retry_attempts = 3
@@ -188,7 +219,7 @@ def upload_images_to_server(connection):
 
     while True:
         pbar.update()
-        localpaths = save_images(connection)
+        localpaths = await save_images(connection)
         if not localpaths:
             break
         for attempt in range(retry_attempts):
@@ -216,7 +247,7 @@ if __name__ == "__main__":
     try:
         # logger.info('Starting main program')
         connection = db.connection()
-        upload_images_to_server(connection)
+        asyncio.run(upload_images_to_server(connection))
         asyncio.run(alarm_bot.send_message())
         input('Программа завершила работу, нажмите ENTER')
         # logger.info('Finished main program')
