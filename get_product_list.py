@@ -1,13 +1,8 @@
-"""
-"""
-
 import os
 import pandas as pd
 import logging
 import time
 from tqdm import tqdm
-
-
 
 from api_requests import get_cnt_pages_list, download_list
 import db
@@ -39,8 +34,6 @@ def get_content_list(list):
     return products_list
 
 def clean_for_excel(text):
-    # Функция для очистки строки от символов, которые могут вызвать ошибки в Excel
-    # Excel не допускает символы в диапазоне 0x00 - 0x1F (кроме 0x09, 0x0A и 0x0D) и 0x7F
     if not isinstance(text, str):
         return text
     return ''.join(char for char in text if char == '\t' or char == '\n' or char == '\r' or 0x20 <= ord(char) <= 0x7E or ord(char) > 0x7F)

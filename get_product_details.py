@@ -91,14 +91,17 @@ def get_compound(product_description):
 def get_colors(product_description):
     colors = []
     articles = []
+    urls = []
     for value in product_description['variants']:
         color = value['attributesValue'].get('colors', None)
         article = value.get('itemId', product_description.get('itemId'))
+        url = value.get('url', product_description.get('url'))
         
         colors.append(color)
         articles.append(article)
+        urls.append(url)
 
-    return colors, articles
+    return colors, articles, urls
 
 
 def get_product_card(product_description):
@@ -113,7 +116,6 @@ def get_product_card(product_description):
 # Функция для получения содержимого списка продуктов
 def save_content_details(connection, details_json,  link):
     product_details = []
-
     
     # Путь к файлу, в который будет сохранен JSON
     file_path = 'jsons/details.json'
@@ -124,50 +126,45 @@ def save_content_details(connection, details_json,  link):
 
     if 'productCard' in details_json:
         data_json = details_json['productCard']['data']
+
+        # Получаем данные о продукте
+        colors, articles, urls = get_colors(data_json)  # Цвета
+        product_type, brand, name = get_product_card(data_json) # Название модели 1, бренд и название модели 2
+        item_id, description_application, characteristics = get_description(data_json['productDescription']) # Артикул, описание+применение и характеристики
+        country = get_country(data_json['productDescription']) # Страна происхождения
+        compound = get_compound(data_json['productDescription'])  # Состав
+        
+        product_details_list = []
+        
+        for article, color, url in zip(articles, colors, urls):
+            
+            product_details = {
+                'article': article,
+                'item_id': item_id,
+                'link': 'https://goldapple.ru'+url,  # Ссылка на продукт
+                'product_type': product_type,
+                'brand': brand,
+                'name': name,
+                'description_application': description_application,
+                'country': country,
+                'color': color,  # Добавляем цвет как элемент списка
+                'compound': compound
+            }
+        
+            # Добавляем каждую характеристику в product_details
+            for characteristic in characteristics:
+                key = characteristic.get('key')
+                value = characteristic.get('value')
+                if key and value:
+                    product_details[key] = value
+        
+            product_details_list.append(product_details)
+        db.save_details_products(connection, product_details_list)
     else:
         print(f"Key 'productCard' not found in JSON data for link: {link}")
 
-
-    # Получаем данные о продукте
-    colors, articles = get_colors(data_json)  # Цвета
-    # product_type, brand, name = get_product_card(data_json) # Название модели 1, бренд и название модели 2
-    # item_id, description_application, characteristics = get_description(data_json['productDescription']) # Артикул, описание+применение и характеристики
-    # country = get_country(data_json['productDescription']) # Страна происхождения
-    # compound = get_compound(data_json['productDescription'])  # Состав
-    
-    # product_details_list = []
-    
-    # for article, color in zip(articles, colors):
-    #     product_details = {
-    #         'article': article,
-    #         'item_id': item_id,
-    #         'link': link,  # Ссылка на продукт
-    #         'product_type': product_type,
-    #         'brand': brand,
-    #         'name': name,
-    #         'description_application': description_application,
-    #         'country': country,
-    #         'color': color,  # Добавляем цвет как элемент списка
-    #         'compound': compound
-    #     }
-    
-    #     # Добавляем каждую характеристику в product_details
-    #     for characteristic in characteristics:
-    #         key = characteristic.get('key')
-    #         value = characteristic.get('value')
-    #         if key and value:
-    #             product_details[key] = value
-    
-    #     product_details_list.append(product_details)
-    
-    # # Предполагается, что db.save_details_products может обрабатывать списки продуктов
-    # db.save_details_products(connection, product_details_list)
-
-    # Получаем ссылки на изображения
-    save_image_old_links(connection, details_json, articles)
-    # except KeyError:
-    #     # print('get_content_details: Не удалось получить данные о продукте')
-    #     pass
+    # # Получаем ссылки на изображения
+    # save_image_old_links(connection, details_json, articles)
 
 
 def save_image_old_links(connection, details_json, articles):
@@ -199,7 +196,6 @@ def get_image_old_links(details_json, articles):
     return images_links
 
 def parsing_product_details(links_list, connection):
-    start_time = time.time()  # Запоминаем время начала выполнения цикла
     for link in tqdm(links_list):
         time.sleep(1)
         # Получаем JSON с информацией о продукте
@@ -225,7 +221,7 @@ def get_links():
         try:
             df = pd.read_excel(filename)
             # Добавление ссылок в список, игнорируя NaN значения
-            for link in df["link"].dropna().unique():
+            for link in df["link_x"].dropna().unique():
                 links.append(link)
         except Exception as e:
             print(f"Error reading file {filename}: {e}")
@@ -236,12 +232,9 @@ def main():
     connection = db.connection()
     
     links_list = get_links()
-    # db_articles = db.get_all_links(connection)
-    
-    # links_list = remove_existing_articles(links_list, db_articles)
     
     parsing_product_details(links_list, connection)
-    upload_images_to_server(connection)
+    # upload_images_to_server(connection)
 
     # Закрываем коннект к базе данных
     db.close_connection(connection)
