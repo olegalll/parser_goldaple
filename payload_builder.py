@@ -64,12 +64,5 @@ class PayloadBuilder:
             ],
         }
 
-    # def _func(self):
-    #     return {key: value}
-
-
-# payload = PayloadBuilder().set_item('19000003031').get_payload()
-# payload = PayloadBuilder().set_category(1000000003).set_page_number(1).set_filters().get_payload()
-
 
 {"itemId":"19000003031","cityId":"0c5b2444-70a0-4932-980c-b4dc0d3f02b5","cityDistrict":"Чертаново Южное","geoPolygons":["EKB-000000370","EKB-000000437"]}

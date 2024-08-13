@@ -54,7 +54,7 @@ class RequestWrapper:
     
                 return json_data
     
-            except ConnectionError:
+            except:
                 # Если возникла ошибка соединения, ждем 5 секунд и повторяем запрос
                 time.sleep(5)
     

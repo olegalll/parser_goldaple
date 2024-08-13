@@ -3,7 +3,7 @@ import time
 from tqdm import tqdm
 import pandas as pd
 import glob
-import asyncio
+# import asyncio
 import re
 import os
 import json
@@ -160,11 +160,11 @@ def save_content_details(connection, details_json,  link):
         
             product_details_list.append(product_details)
         db.save_details_products(connection, product_details_list)
+        # Получаем ссылки на изображения
+        save_image_old_links(connection, details_json, articles)
     else:
         print(f"Key 'productCard' not found in JSON data for link: {link}")
 
-    # # Получаем ссылки на изображения
-    # save_image_old_links(connection, details_json, articles)
 
 
 def save_image_old_links(connection, details_json, articles):
@@ -234,11 +234,11 @@ def main():
     links_list = get_links()
     
     parsing_product_details(links_list, connection)
-    # upload_images_to_server(connection)
+    upload_images_to_server(connection)
 
     # Закрываем коннект к базе данных
     db.close_connection(connection)
-    asyncio.run(alarm_bot.send_message())
+    # asyncio.run(alarm_bot.send_message())
 
 
 if __name__ == '__main__':

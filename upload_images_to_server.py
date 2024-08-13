@@ -17,9 +17,9 @@ from config import server, username, password
 
 # Добавляем декоратор для измерения времени выполнения функций
 def log_time_async(func):
-    async def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs):
         start_time = time.time()
-        result = await func(*args, **kwargs)
+        result = func(*args, **kwargs)
         end_time = time.time()
         elapsed_time = (end_time - start_time) * 100  # Время в сотых долях секунды
         logger.info(f'{func.__name__} выполнена за {elapsed_time:.2f} сотых секунды')
@@ -42,12 +42,12 @@ logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 # @log_time_async
-async def download_image(image_url, localpath):
+def download_image(image_url, localpath):
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(image_url) as response:
+        with aiohttp.ClientSession() as session:
+            with session.get(image_url) as response:
                 if response.status == 200:
-                    image_data = await response.read()
+                    image_data = response.read()
                     img = Image.open(BytesIO(image_data))
                     format = img.format if img.format else 'webp'  # Если формат не определен, используем webp по умолчанию
                     extension = f'.{format.lower()}'
@@ -60,7 +60,7 @@ async def download_image(image_url, localpath):
         return None
 
 # @log_time_async
-async def save_images(connection):
+def save_images(connection):
     try:
         # logger.info('Starting save_images')
         images_data = db.get_old_link(connection)
@@ -73,7 +73,7 @@ async def save_images(connection):
             base_localpath = f'images_goldapple/{image["article"]}/{str(image["image_id"])}'
             localpath_dir = os.path.join('images_goldapple', str(image['article']))
             os.makedirs(localpath_dir, exist_ok=True)
-            extension = await download_image(image['old_link'], base_localpath)  # Получаем расширение файла из download_image
+            extension = download_image(image['old_link'], base_localpath)  # Получаем расширение файла из download_image
             if extension:
                 localpath = f'{base_localpath}{extension}'  # Формируем полный путь с расширением
                 localpaths.append(localpath)
@@ -208,7 +208,7 @@ def close_sftp_server(ssh, sftp):
 
 
 # @log_time_async
-async def upload_images_to_server(connection):
+def upload_images_to_server(connection):
     cnt = db.get_cnt_images_null(connection)
     pbar = tqdm(total=cnt, dynamic_ncols=True)
 
@@ -219,7 +219,7 @@ async def upload_images_to_server(connection):
 
     while True:
         pbar.update()
-        localpaths = await save_images(connection)
+        localpaths = save_images(connection)
         if not localpaths:
             break
         for attempt in range(retry_attempts):
@@ -247,8 +247,8 @@ if __name__ == "__main__":
     try:
         # logger.info('Starting main program')
         connection = db.connection()
-        asyncio.run(upload_images_to_server(connection))
-        asyncio.run(alarm_bot.send_message())
+        upload_images_to_server(connection)
+        # alarm_bot.send_message()
         input('Программа завершила работу, нажмите ENTER')
         # logger.info('Finished main program')
     except Exception as e:
