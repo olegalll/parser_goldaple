@@ -65,7 +65,7 @@ def main(path_xlsx, category_id):
 
     start_time = time.time()  # Запоминаем время начала выполнения цикла
     # for page_num in tqdm(range(1, 1 + 1)): 
-    for page_num in tqdm(range(1, total_pages + 1)): 
+    for page_num in tqdm(range(1, total_pages + 1), ncols=90): 
         logging.info(f'Start processing page {page_num}')
         list = download_list(category_id, page_num)
         time.sleep(1)
@@ -93,6 +93,7 @@ def main(path_xlsx, category_id):
 categories = [
     {"id": 1, "название": "Красота", "category_id": 1000000003},
     {"id": 2, "название": "Уход", "category_id": 1000000004},
+    {"id": 3, "название": "Волосы", "category_id": 1000000006},
 ]
 
 if __name__ == '__main__':

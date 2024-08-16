@@ -319,9 +319,26 @@ def clear_details_table(connection):
     cursor.execute("DELETE FROM details_products")
     connection.commit() 
 
+import sqlite3
+
+def delete_rows_with_null_new_link(connection):
+    connection.row_factory = sqlite3.Row  # Устанавливаем row_factory для соединения
+    cursor = connection.cursor()
+    query = """
+        DELETE FROM images
+        WHERE new_link IS NULL
+    """
+    try:
+        cursor.execute(query)
+        connection.commit()
+        print("Строки с new_link IS NULL успешно удалены.")
+    except sqlite3.Error as e:
+        print(f"Произошла ошибка при удалении данных: {e}")
+        connection.rollback()  # Откатываем изменения в случае ошибки
+
 def main():
     connection = sqlite3.connect('database/goldapple.db')
-
+    delete_rows_with_null_new_link(connection)
     connection.close()
 
 if __name__ == '__main__':

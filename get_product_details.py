@@ -7,6 +7,7 @@ import glob
 import re
 import os
 import json
+import asyncio
 
 import db
 import alarm_bot
@@ -196,10 +197,13 @@ def get_image_old_links(details_json, articles):
     return images_links
 
 def parsing_product_details(links_list, connection):
-    for link in tqdm(links_list):
+    for link in tqdm(links_list, ncols=90):
         time.sleep(1)
+        
         # Получаем JSON с информацией о продукте
         details_json = get_details_json(link)
+        if not details_json:
+            continue
         # Получаем данные о продукте 
         save_content_details(connection, details_json, link)
 
@@ -234,11 +238,11 @@ def main():
     links_list = get_links()
     
     parsing_product_details(links_list, connection)
-    upload_images_to_server(connection)
+    asyncio.run(upload_images_to_server(connection))
 
     # Закрываем коннект к базе данных
     db.close_connection(connection)
-    # asyncio.run(alarm_bot.send_message())
+    asyncio.run(alarm_bot.send_message())
 
 
 if __name__ == '__main__':
