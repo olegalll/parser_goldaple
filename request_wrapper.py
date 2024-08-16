@@ -26,6 +26,8 @@ class RequestWrapper:
     
     def _get(self, url, headers, cookies):
         for _ in range(5):  # Попробуйте 5 раз
+            # Инициализируем словарь для хранения данных JSON
+            json_data = {}
             try:
                 # Выполняем запрос
                 r = requests.get(url, cookies=cookies, headers=headers)
@@ -34,8 +36,7 @@ class RequestWrapper:
                 soup = BeautifulSoup(r.text, 'html.parser')
                 script_tags = soup.find_all('script')
     
-                # Инициализируем словарь для хранения данных JSON
-                json_data = {}
+
     
                 # Ищем в скриптах необходимые данные
                 pattern = re.compile(r"window\.serverCache\['(\w+)'\]\s*=\s*({.*?});", re.DOTALL)
@@ -51,12 +52,9 @@ class RequestWrapper:
                                 json_data[key] = value
                             except json.JSONDecodeError as e:
                                 print(f"Error decoding JSON for key {key}: {e}")
-    
                 return json_data
-    
             except:
-                # Если возникла ошибка соединения, ждем 5 секунд и повторяем запрос
-                time.sleep(5)
+                return json_data
     
         # Если все 5 попыток не удалось, поднимаем исключение
         raise ConnectionError('Failed to connect after 5 attempts')
