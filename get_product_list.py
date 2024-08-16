@@ -53,18 +53,18 @@ def save_df_to_excel(path_xlsx, df):
     df.to_excel(path_xlsx, index=False)
 
 
-def main(path_xlsx, category_id):
+def main(category_id):
     connection = db.connection()
 
     # Получаем количество страниц с продуктами
     total_pages = get_cnt_pages_list(category_id) // 24
+
 
     # Создаем пустой DataFrame
     df = pd.DataFrame()
     df_list = []
 
     start_time = time.time()  # Запоминаем время начала выполнения цикла
-    # for page_num in tqdm(range(1, 1 + 1)): 
     for page_num in tqdm(range(1, total_pages + 1), ncols=90): 
         logging.info(f'Start processing page {page_num}')
         list = download_list(category_id, page_num)
@@ -73,21 +73,18 @@ def main(path_xlsx, category_id):
         df_list.append(pd.DataFrame(products_list))
     df = pd.concat(df_list, ignore_index=True).drop_duplicates(subset=['article'], keep='last')
 
-        # Получаем данные из базы данных
+    # Получаем данные из базы данных
     details_columns, details_data = db.get_details_and_new_link_by_article(connection)
     details = pd.DataFrame(details_data, columns=details_columns)
     details['article'] = details['article'].astype(str)
     # Объединяем products_data_df и details
     products_data_df = pd.merge(df, details, on='article', how='left')    
-    # logging.info(f'Finished processing page {page_num}')
 
     end_time = time.time()  # Запоминаем время окончания выполнения цикла
     logging.info(f'Total time for processing {total_pages} pages: {end_time - start_time} seconds')
 
-
-    # Вызываем функцию для сохранения DataFrame в файл Excel
-    save_df_to_excel(path_xlsx, products_data_df)
     db.close_connection(connection)
+    return products_data_df
 
 # Хардкод TODO: сделать по-красоте... когда-нибудь
 categories = [
@@ -97,17 +94,20 @@ categories = [
 ]
 
 if __name__ == '__main__':
-    for category in categories:
-        print(f"{category['id']}: {category['название']}")
-
-    input_category = int(input('Введите номер категории: '))
     name_path = input('Введите название будущей таблицы и нажмите ENTER \n')
-    # input_category = 1000000004
-    # name_path = 'products'
-
-    category_id = categories[input_category - 1]['category_id']
     path_xlsx = f'result/{name_path}.xlsx'
+    combined_df = pd.DataFrame()
+    n=0
+    for category in categories:
+        print(f'Спарсено категорий {n} из {len(categories)}')
+        n+=1
+        category_id = category['category_id']
+        category_df = main(category_id)
+        combined_df = pd.concat([combined_df, category_df], ignore_index=True)
+    print('Сохранение данных в файл...')
+    # Удаляем дубликаты
+    combined_df = combined_df.drop_duplicates(subset=['article'], keep='last')
     
-    main(path_xlsx, category_id)
+    save_df_to_excel(path_xlsx, combined_df)
 
 #  pyinstaller .\get_product_list.py --onefile
