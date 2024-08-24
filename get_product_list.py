@@ -58,19 +58,25 @@ def save_df_to_excel(path_xlsx, df):
 
 def main(category_id):
     connection = db.connection()
-
-    # Получаем количество страниц с продуктами
-    total_items = get_cnt_pages_list(category_id) 
+    
+    # При достижении 500й страницы сайт перестает отдавать товары. Поэтому парсим отсортированный по цене список с заданными динамическими лимитами.
+    # Минимальная и максимальная цена по-умолчанию
+    amount_min = 22
+    amount_max = 4053
+    # Получаем количество страниц с продуктами всего
+    total_items = get_cnt_pages_list(category_id, amount_min, amount_max) 
     total_pages = total_items // 24
 
-    # Создаем пустой DataFrame
     df = pd.DataFrame()
     df_list = []
+    
 
     start_time = time.time()  # Запоминаем время начала выполнения цикла
-    for page_num in tqdm(range(1, total_pages + 1), ncols=90): 
+    page_num = 1
+
+    for _ in tqdm(range(1, total_pages + 1), ncols=90): 
         logging.info(f'Start processing page {page_num}')
-        list = download_list(category_id, page_num)
+        list = download_list(category_id, page_num, amount_min, amount_max)
         if not list:
             logging.error(f'No data received for page {page_num}')
         time.sleep(1)
@@ -78,6 +84,11 @@ def main(category_id):
         if not products_list:
             logging.error(f'No products received for page {page_num}')
         df_list.append(pd.DataFrame(products_list))
+        
+        # Изменяем минимальную цену для следующей страницы
+        if page_num % 500 == 0:
+            amount_min = products_list[-1]['actual_amount']  # Обновляем минимальную цену
+            page_num = 1
     df = pd.concat(df_list, ignore_index=True).drop_duplicates(subset=['article'], keep='last')
 
     # Получаем данные из базы данных
@@ -95,9 +106,9 @@ def main(category_id):
 
 # Хардкод TODO: сделать по-красоте... когда-нибудь
 categories = [
-    {"id": 1, "название": "Красота", "category_id": 1000000003},
+    # {"id": 1, "название": "Красота", "category_id": 1000000003},
     {"id": 2, "название": "Уход", "category_id": 1000000004},
-    {"id": 3, "название": "Волосы", "category_id": 1000000006},
+    # {"id": 3, "название": "Волосы", "category_id": 1000000006},
 ]
 
 if __name__ == '__main__':

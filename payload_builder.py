@@ -15,8 +15,8 @@ class PayloadBuilder:
         self.payload.update({'pageNumber': page_number})
         return self
     
-    def set_filters(self):      
-        self.payload.update(self._get_filter())
+    def set_filters(self, amount_min: int = 22, amount_max: int = 4053):      
+        self.payload.update(self._get_filter(amount_min, amount_max))
         return self
 
     def get_payload(self):
@@ -26,17 +26,17 @@ class PayloadBuilder:
     #     self.payload.update(self._func())
     #     return self
 
-    def _get_filter(self):
+    def _get_filter(self, amount_min, amount_max):
         return {
             "filters":[
                 {
                     "currentMinValue":{
-                        "amount":22,
+                        "amount":amount_min,
                         "currency":"RUB",
                         "denominator":1
                     },
                     "currentMaxValue":{
-                        "amount":4053,
+                        "amount": amount_max,
                         "currency":"RUB",
                         "denominator":1
                     },

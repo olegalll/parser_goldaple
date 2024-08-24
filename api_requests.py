@@ -5,16 +5,16 @@ from request_wrapper import RequestWrapper
 from payload_builder import PayloadBuilder
 
 # Функция для получения количества страниц с продуктами
-def get_cnt_pages_list(category_id):
-    payload = PayloadBuilder().set_category(category_id).set_filters().get_payload()
+def get_cnt_pages_list(category_id, amount_min=22, amount_max=4053):
+    payload = PayloadBuilder().set_category(category_id).set_filters(amount_min, amount_max).get_payload()
     wrapper = RequestWrapper(payload)
     response = wrapper.post_filters()
     response_data = response['data']['productsCount']
     return response_data
 
 # Функция для получения списка продуктов
-def download_list(category_id, page=1):
-    payload = PayloadBuilder().set_category(category_id).set_page_number(page).set_filters().get_payload()
+def download_list(category_id, page=1, amount_min=22, amount_max=4053):
+    payload = PayloadBuilder().set_category(category_id).set_page_number(page).set_filters(amount_min, amount_max).get_payload()
     request = RequestWrapper(payload)
     response = request.post_options()
     return response
