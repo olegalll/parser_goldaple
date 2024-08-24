@@ -11,7 +11,7 @@ import db
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Функция для получения содержимого списка продуктов
-def get_content_list(list):
+def get_content_list(list, category_id = None):
     data = list
     if not data:
         logging.error('get_content_list: No data received')
@@ -29,7 +29,8 @@ def get_content_list(list):
             'old_amount': product['price']['old']['amount'] if product['price']['old'] is not None else None,
             'link': f'https://goldapple.ru{product["url"]}',
             'courier': courier,
-            'store_pickup': store_pickup, # TODO: удалить
+            'store_pickup': store_pickup, # TODO: удалить,
+            'category_id': category
         }
         products_list.append(product_info)
         # logging.info(f'get_content_list: {product_info["article"]} - {product_info["name"]} - {product_info["actual_amount"]} - {product_info["old_amount"]} - {product_info["link"]}')
@@ -75,16 +76,18 @@ def main(category_id):
     page_num = 1
 
     for _ in tqdm(range(1, total_pages + 1), ncols=90): 
+        
         logging.info(f'Start processing page {page_num}')
         list = download_list(category_id, page_num, amount_min, amount_max)
         if not list:
             logging.error(f'No data received for page {page_num}')
         time.sleep(1)
-        products_list = get_content_list(list)
+        products_list = get_content_list(list, category_id)
         if not products_list:
             logging.error(f'No products received for page {page_num}')
         df_list.append(pd.DataFrame(products_list))
         
+        page_num += 1
         # Изменяем минимальную цену для следующей страницы
         if page_num % 500 == 0:
             amount_min = products_list[-1]['actual_amount']  # Обновляем минимальную цену
@@ -106,9 +109,9 @@ def main(category_id):
 
 # Хардкод TODO: сделать по-красоте... когда-нибудь
 categories = [
-    # {"id": 1, "название": "Красота", "category_id": 1000000003},
+    {"id": 1, "название": "Красота", "category_id": 1000000003},
     {"id": 2, "название": "Уход", "category_id": 1000000004},
-    # {"id": 3, "название": "Волосы", "category_id": 1000000006},
+    {"id": 3, "название": "Волосы", "category_id": 1000000006},
 ]
 
 if __name__ == '__main__':

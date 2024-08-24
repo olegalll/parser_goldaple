@@ -46,12 +46,12 @@ class PayloadBuilder:
                     "key":"calculatedprices"
                 },
                 {
-                    "value": True,
-                    "id":"63568bc7bf461b4b2bde3b23",
-                    "type":"checkType",
-                    "name":"StoreStocks",
-                    "key":"storestocks"
-                }
+                    'valueId': 'priceAsc',
+                    'id': 'sort',
+                    'type': 'sortType',
+                    'name': '#Sort',
+                    'key': 'sort',
+                },
             ]
         }
     def _get_geo(self):
