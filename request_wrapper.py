@@ -5,6 +5,10 @@ from bs4 import BeautifulSoup
 import time
 import requests
 from requests.exceptions import ConnectionError
+import logging
+
+# Настройка логирования
+logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class RequestWrapper:
     def __init__(self, payload=None):
@@ -59,12 +63,22 @@ class RequestWrapper:
         # Если все 5 попыток не удалось, поднимаем исключение
         raise ConnectionError('Failed to connect after 5 attempts')
     
-    def _post(self, payload, url, headers, cookies):
-        r = requests.post(url, headers=headers, cookies=cookies, json=payload)
-        if r.status_code != 200:
-            raise Exception(f"Failed to fetch URL {url}: Status code {r.status_code}")
-        json_data = r.json()
-        return json_data
+    def _post(self, payload, url, headers, cookies, retries=3, delay=5):
+        for attempt in range(retries):
+            try:
+                r = requests.post(url, headers=headers, cookies=cookies, json=payload)
+                if r.status_code != 200:
+                    raise Exception(f"Failed to fetch URL {url}: Status code {r.status_code}")
+                json_data = r.json()
+                return json_data
+            except Exception as e:
+                if attempt < retries - 1:
+                    logging.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                else:
+                    raise
+                json_data = {}
+                return json_data
 
     def _get_headers(self, type):
         headers_options = {

@@ -13,7 +13,9 @@ logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s 
 # Функция для получения содержимого списка продуктов
 def get_content_list(list):
     data = list
-    
+    if not data:
+        logging.error('get_content_list: No data received')
+        return []
     products_list = []
     for product in data['data']['products']:
         # courier, store_pickup = get_item(product['itemId']) # Закомментировал, так отказались из-за скорости работы
@@ -30,6 +32,7 @@ def get_content_list(list):
             'store_pickup': store_pickup, # TODO: удалить
         }
         products_list.append(product_info)
+        # logging.info(f'get_content_list: {product_info["article"]} - {product_info["name"]} - {product_info["actual_amount"]} - {product_info["old_amount"]} - {product_info["link"]}')
 
     return products_list
 
@@ -57,8 +60,8 @@ def main(category_id):
     connection = db.connection()
 
     # Получаем количество страниц с продуктами
-    total_pages = get_cnt_pages_list(category_id) // 24
-
+    total_items = get_cnt_pages_list(category_id) 
+    total_pages = total_items // 24
 
     # Создаем пустой DataFrame
     df = pd.DataFrame()
@@ -68,8 +71,12 @@ def main(category_id):
     for page_num in tqdm(range(1, total_pages + 1), ncols=90): 
         logging.info(f'Start processing page {page_num}')
         list = download_list(category_id, page_num)
+        if not list:
+            logging.error(f'No data received for page {page_num}')
         time.sleep(1)
         products_list = get_content_list(list)
+        if not products_list:
+            logging.error(f'No products received for page {page_num}')
         df_list.append(pd.DataFrame(products_list))
     df = pd.concat(df_list, ignore_index=True).drop_duplicates(subset=['article'], keep='last')
 
@@ -109,5 +116,7 @@ if __name__ == '__main__':
     combined_df = combined_df.drop_duplicates(subset=['article'], keep='last')
     
     save_df_to_excel(path_xlsx, combined_df)
+
+    input('Данные сохранены в файл. Нажмите ENTER для выхода')
 
 #  pyinstaller .\get_product_list.py --onefile
