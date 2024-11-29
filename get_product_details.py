@@ -238,7 +238,7 @@ def main():
     links_list = get_links()
     
     parsing_product_details(links_list, connection)
-    asyncio.run(upload_images_to_server(connection))
+    # asyncio.run(upload_images_to_server(connection))
 
     # Закрываем коннект к базе данных
     db.close_connection(connection)

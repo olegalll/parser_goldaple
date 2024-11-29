@@ -14,3 +14,4 @@ dist/
 *.zip
 images_goldapple/
 last_processed_path.txt
+*.csv

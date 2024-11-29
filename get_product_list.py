@@ -92,6 +92,10 @@ def main(category_id):
         if page_num % 500 == 0:
             amount_min = products_list[-1]['actual_amount']  # Обновляем минимальную цену
             page_num = 1
+
+    # Фильтруем пустые DataFrame из df_list
+    df_list = [df for df in df_list if not df.empty]
+    # Объединяем все DataFrame в один
     df = pd.concat(df_list, ignore_index=True).drop_duplicates(subset=['article'], keep='last')
 
     # Получаем данные из базы данных
