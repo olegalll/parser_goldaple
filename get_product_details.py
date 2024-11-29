@@ -128,7 +128,7 @@ def save_content_details(connection, details_json,  link):
     if 'productCard' in details_json:
         data_json = details_json['productCard']['data']
 
-        # Получаем данные о продукте
+        # # Получаем данные о продукте
         colors, articles, urls = get_colors(data_json)  # Цвета
         product_type, brand, name = get_product_card(data_json) # Название модели 1, бренд и название модели 2
         item_id, description_application, characteristics = get_description(data_json['productDescription']) # Артикул, описание+применение и характеристики

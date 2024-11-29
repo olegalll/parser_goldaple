@@ -46,6 +46,12 @@ class PayloadBuilder:
                     "key":"calculatedprices"
                 },
                 {
+                    'id': '63568bc7bf461b4b2bde3b23',
+                    'key': 'storestocks',
+                    'type': 'checkType',
+                    'value': True,
+                },
+                {
                     'valueId': 'priceAsc',
                     'id': 'sort',
                     'type': 'sortType',

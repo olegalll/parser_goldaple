@@ -75,6 +75,7 @@ def main(category_id):
     start_time = time.time()  # Запоминаем время начала выполнения цикла
     page_num = 1
 
+    # for _ in tqdm(range(1, 2 + 1), ncols=90): 
     for _ in tqdm(range(1, total_pages + 1), ncols=90): 
         
         logging.info(f'Start processing page {page_num}')
@@ -89,7 +90,7 @@ def main(category_id):
         
         page_num += 1
         # Изменяем минимальную цену для следующей страницы
-        if page_num % 500 == 0:
+        if page_num % 500 == 0 and products_list:
             amount_min = products_list[-1]['actual_amount']  # Обновляем минимальную цену
             page_num = 1
 

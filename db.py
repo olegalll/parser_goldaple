@@ -1,5 +1,6 @@
 import sqlite3
 import re
+import pandas as pd
 
 def clean_key(key):
     # Заменяем пробелы на подчеркивания
@@ -338,7 +339,8 @@ def delete_rows_with_null_new_link(connection):
 
 def main():
     connection = sqlite3.connect('database/goldapple.db')
-    delete_rows_with_null_new_link(connection)
+    images_list = pd.read_excel('old_links6.xlsx')['article','images'].tolist()
+    save_images_old_links(connection, images_list)
     connection.close()
 
 if __name__ == '__main__':
