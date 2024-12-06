@@ -1,11 +1,9 @@
-from PIL import Image
-import io
-import paramiko
 import os
-
-from config import server, username, password
-
+import io
 import logging
+import paramiko
+from PIL import Image
+from config import server, username, password
 from logging.handlers import RotatingFileHandler
 
 logger = logging.getLogger(__name__)
@@ -123,7 +121,7 @@ def process_directory(directory, sftp_param, processed_folders):
         if str(e) == 'Socket is closed' or isinstance(e, paramiko.ssh_exception.SSHException):
             logger.error("Соединение было закрыто. Попытка переподключения...")
             reconnect_sftp()
-            process_directory(directory, sftp)
+            process_directory(directory, sftp, processed_folders)
         else:
             raise
 
@@ -140,9 +138,6 @@ def extract_folder_ids_from_log(log_file_path):
 
 def is_folder_processed(folder_id, processed_folders):
     return folder_id in processed_folders
-
-
-
 
 
 ssh = paramiko.SSHClient()

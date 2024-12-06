@@ -1,19 +1,18 @@
-from PIL import Image
-from io import BytesIO
 import os
-from stat import S_ISDIR, S_ISREG
-import paramiko
-import tarfile
-import asyncio
+import db
 import time
 import shutil
-import logging
-from tqdm import tqdm
 import aiohttp
-
-import db 
+import tarfile
+import asyncio
+import logging
+import paramiko
 import alarm_bot
+from PIL import Image
+from io import BytesIO
+from tqdm import tqdm
 from config import server, username, password
+from change_images.image_processor import ImageProcessor
 
 # Добавляем декоратор для измерения времени выполнения функций
 def log_time_async(func):
@@ -42,13 +41,14 @@ logging.basicConfig(encoding='utf-8', filename='images.log', level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 @log_time_async
-async def download_image(image_url, localpath):
+async def download_image(image_url, localpath, image_processor):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(image_url) as response:
                 if response.status == 200:
                     image_data = await response.read()
                     img = Image.open(BytesIO(image_data))
+                    img = image_processor.check_and_change_image_size(img)
                     format = img.format if img.format else 'webp'  # Если формат не определен, используем webp по умолчанию
                     extension = f'.{format.lower()}'
                     if not os.path.splitext(localpath)[1]:  # Если в localpath нет расширения файла
@@ -63,25 +63,27 @@ async def download_image(image_url, localpath):
         return None
 
 @log_time_async
-async def save_images(connection):
+async def save_images(chunk, connection):
     try:
         logger.info('Starting save_images')
-        images_data = db.get_old_link(connection)
+        images_data = db.get_old_link(chunk, connection)
         if not images_data:
             logger.info('No images to save')
             return None
         localpaths = []
         remotepaths = []
+        image_processor = ImageProcessor()
         for image in images_data:
             base_localpath = f'images_goldapple/{image["article"]}/{str(image["image_id"])}'
             localpath_dir = os.path.join('images_goldapple', str(image['article']))
             os.makedirs(localpath_dir, exist_ok=True)
-            extension = await download_image(image['old_link'], base_localpath)  # Получаем расширение файла из download_image
+            extension = await download_image(image['old_link'], base_localpath, image_processor)  # Получаем расширение файла из download_image
             if extension:
                 localpath = f'{base_localpath}{extension}'  # Формируем полный путь с расширением
                 localpaths.append(localpath)
                 remotepath = f'http://{server}/{localpath}'
                 remotepaths.append(remotepath)
+                logger.info(f"NEW IMAGE ID: {image['image_id']} ({remotepath})")
                 db.update_image(connection, image['image_id'], remotepath)
         connection.commit()
         logger.info('Finished saving images')
@@ -212,17 +214,27 @@ def close_sftp_server(ssh, sftp):
 
 @log_time_async
 async def upload_images_to_server(connection):
-    cnt = db.get_cnt_images_null(connection)
-    pbar = tqdm(total=cnt, ncols=90)
+    articles = db.get_old_link_articles(connection)
+
+    if articles is None:
+        logger.error("Не могу собрать изображения")
+        exit(1)
+    if not articles:
+        logger.error("Отсутствуют незакачанные изображения")
+        exit(1)
+
+    chunk_size = 5
+    chunks = [articles[i:i + chunk_size] for i in range(0, len(articles), chunk_size)]
+    pbar = tqdm(total=len(articles), ncols=90)
 
     retry_attempts = 3
 
     ssh = None
     sftp = None
     n = 0
-    while True:
-        pbar.update()
-        localpaths = await save_images(connection)
+
+    for chunk in chunks:
+        localpaths = await save_images(chunk, connection)
         if not localpaths:
             n+=1
             print(f'No images to upload: {n}')
@@ -242,6 +254,7 @@ async def upload_images_to_server(connection):
         else:
             logger.error('Failed to connect to the server after several attempts.')
             break
+        pbar.update(chunk_size)
     pbar.close()
 
     if ssh and sftp:
@@ -254,7 +267,7 @@ if __name__ == "__main__":
         logger.info('Starting main program')
         connection = db.connection()
         asyncio.run(upload_images_to_server(connection))
-        asyncio.run(alarm_bot.send_message())
+        # asyncio.run(alarm_bot.send_message())
         input('Программа завершила работу, нажмите ENTER')
         logger.info('Finished main program')
     except Exception as e:

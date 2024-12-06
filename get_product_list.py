@@ -1,11 +1,10 @@
 import os
-import pandas as pd
-import logging
 import time
-from tqdm import tqdm
-
-from api_requests import get_cnt_pages_list, download_list
+import logging
+import pandas as pd
 import db
+from tqdm import tqdm
+from api_requests import get_cnt_pages_list, download_list
 
 # Настройка логирования
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,6 +19,10 @@ def get_content_list(list, category_id = None):
     for product in data['data']['products']:
         # courier, store_pickup = get_item(product['itemId']) # Закомментировал, так отказались из-за скорости работы
         courier, store_pickup = None, None
+        in_stock = product['inStock']
+        if not in_stock:
+            logging.info(f"NOT IN STOCK: https://goldapple.ru{product["url"]} ({product['itemId']})")
+            continue
         product_info = {
             'article': product['itemId'],
             'item_id': product['mainVariantItemId'],
@@ -65,18 +68,17 @@ def main(category_id):
     amount_min = 22
     amount_max = 4053
     # Получаем количество страниц с продуктами всего
-    total_items = get_cnt_pages_list(category_id, amount_min, amount_max) 
+    total_items = get_cnt_pages_list(category_id, amount_min, amount_max)
     total_pages = total_items // 24
 
     df = pd.DataFrame()
     df_list = []
-    
 
     start_time = time.time()  # Запоминаем время начала выполнения цикла
     page_num = 1
 
     # for _ in tqdm(range(1, 2 + 1), ncols=90): 
-    for _ in tqdm(range(1, total_pages + 1), ncols=90): 
+    for _ in tqdm(range(page_num, total_pages + 1), ncols=90):
         
         logging.info(f'Start processing page {page_num}')
         list = download_list(category_id, page_num, amount_min, amount_max)
@@ -104,7 +106,7 @@ def main(category_id):
     details = pd.DataFrame(details_data, columns=details_columns)
     details['article'] = details['article'].astype(str)
     # Объединяем products_data_df и details
-    products_data_df = pd.merge(df, details, on='article', how='left')    
+    products_data_df = pd.merge(df, details, on='article', how='left')
 
     end_time = time.time()  # Запоминаем время окончания выполнения цикла
     logging.info(f'Total time for processing {total_pages} pages: {end_time - start_time} seconds')

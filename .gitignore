@@ -15,3 +15,5 @@ dist/
 images_goldapple/
 last_processed_path.txt
 *.csv
+*.jpg
+*.webp

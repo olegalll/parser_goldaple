@@ -1,18 +1,13 @@
-
-import time
-from tqdm import tqdm
-import pandas as pd
-import glob
-# import asyncio
 import re
 import os
-import json
-import asyncio
-
-import db
+import time
 import alarm_bot
+import glob
+import json
+import pandas as pd
+import db
+from tqdm import tqdm
 from api_requests import get_details_json
-from request_wrapper import RequestWrapper
 from upload_images_to_server import upload_images_to_server
 
 def find_item(details_json_getted, text):
@@ -212,37 +207,50 @@ def remove_existing_articles(links_list, db_articles):
     filtered_links = [link for link in links_list if link not in db_articles]
     return filtered_links
 
-def get_links():
+def get_links(exists_articles=None):
     # Получить список всех Excel файлов в директории
     all_files = glob.glob("./result/*.xlsx")
-    links = []  # Список для хранения ссылок
+    links_articles = {}  # Список для хранения ссылок
 
     for filename in all_files:
         # Игнорировать файлы, начинающиеся на "~$"
-        if os.path.basename(filename).startswith("~$"):
+        if os.path.basename(filename).startswith("~$") or os.path.basename(filename).startswith(".~"):
             continue
 
         try:
             df = pd.read_excel(filename)
             # Добавление ссылок в список, игнорируя NaN значения
-            for link in df["link_x"].dropna().unique():
-                links.append(link)
+
+            for index, row in df.iterrows():
+                link = row["link_x"]
+                article = row["article"]
+                if exists_articles and article in exists_articles:
+                    continue
+                elif article not in links_articles:
+                    links_articles[article] = link
         except Exception as e:
             print(f"Error reading file {filename}: {e}")
+
+    links = list(set(links_articles.values()))
 
     return links
 
 def main():
     connection = db.connection()
-    
-    links_list = get_links()
-    
+
+    # Если нужно пересобрать заново все детали закомментировать иначе будет поиск только для новых артикулов, которых нет в базе
+    exists_articles_with_details_and_images = db.get_exists_article_details(connection)
+    print(f"Exists articles {len(exists_articles_with_details_and_images)}")
+
+    links_list = get_links(exists_articles_with_details_and_images)
+    print(f"New links {len(links_list)}")
+
     parsing_product_details(links_list, connection)
     # asyncio.run(upload_images_to_server(connection))
 
     # Закрываем коннект к базе данных
     db.close_connection(connection)
-    asyncio.run(alarm_bot.send_message())
+    # asyncio.run(alarm_bot.send_message())
 
 
 if __name__ == '__main__':

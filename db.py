@@ -1,5 +1,6 @@
-import sqlite3
+import os
 import re
+import sqlite3
 import pandas as pd
 
 def clean_key(key):
@@ -11,7 +12,8 @@ def clean_key(key):
 
 def connection():
 # Создаем подключение к базе данных (файл database.db будет создан)
-    connection = sqlite3.connect('database/goldapple.db')
+    db_path = os.path.join(os.path.dirname(__file__), 'database', 'goldapple.db')
+    connection = sqlite3.connect(db_path)
     return connection
 
 def close_connection(connection):  
@@ -201,6 +203,46 @@ def get_images_by_id(connection, article):
 
     return data
 
+def delete_duplicates_images(connection):
+    cursor = connection.cursor()
+    cursor.execute('''
+    -- Найти все дубликаты по полям article и old_link
+        WITH duplicates AS (
+            SELECT article, old_link
+            FROM images
+            GROUP BY article, old_link
+            HAVING COUNT(*) > 1
+        )
+    -- Удалить дубликаты, у которых new_link is NULL
+        DELETE FROM images
+        WHERE (article, old_link) IN (SELECT article, old_link FROM duplicates)
+        AND new_link IS NULL;
+        ''')
+
+    connection.commit()
+    cursor.close()
+
+def get_exists_article_details(connection):
+    cursor = connection.cursor()
+    query = """SELECT DISTINCT dp.article
+                FROM details_products dp
+                WHERE 
+                dp.article NOT IN 
+                    (SELECT DISTINCT i.article FROM images i WHERE i.new_link IS NULL) 
+                AND 
+                dp.article IN 
+                    (SELECT DISTINCT i2.article FROM images i2 WHERE i2.new_link IS NOT NULL);"""
+    try:
+        cursor.execute(query)
+        data = cursor.fetchall()
+        data = [row[0] for row in data]
+    except sqlite3.Error as e:
+        print(f"Произошла ошибка при получении данных: {e}")
+        data = None  # Устанавливаем data в None в случае ошибки
+    cursor.close()
+    return data
+
+
 def check_and_create_images_table(connection):
     cursor = connection.cursor()
     # Проверяем наличие таблицы 'images'
@@ -244,14 +286,20 @@ def delete_details_table(connection):
 
 def save_images_old_links(connection, images_list):
     cursor = connection.cursor()
-    cursor.executemany('''
-        INSERT INTO images (
-                    article,
-                    old_link)
-        VALUES (
-                    :article,
-                    :old_link)
-    ''', images_list)
+    for image in images_list:
+
+        cursor.execute("SELECT COUNT(*) FROM images WHERE article = ? AND old_link = ?", (image["article"], image["old_link"]))
+        exists = cursor.fetchone()[0]
+
+        if not exists > 0:
+            cursor.execute('''
+                INSERT INTO images (
+                            article,
+                            old_link)
+                VALUES (?, ?)
+            ''', (image["article"], image["old_link"]))
+        # else:
+        #     print(f"COUNT FIND IMAGES {exists}")
     connection.commit()
 
 
@@ -268,19 +316,37 @@ def get_cnt_images_null(connection):
         result = cursor.fetchone()[0]  # Получаем одну строку данных
     except sqlite3.Error as e:
         print(f"get_cnt_images: {e}")
-    return result   
+    return result
 
-def get_old_link(connection):
+def get_old_link_articles(connection):
     connection.row_factory = sqlite3.Row  # Устанавливаем row_factory для соединения
     cursor = connection.cursor()
     query = """
+        SELECT DISTINCT article
+        FROM images
+        WHERE new_link IS NULL
+    """
+    try:
+        cursor.execute(query)
+        data = cursor.fetchall()
+        data = [row["article"] for row in data]
+    except sqlite3.Error as e:
+        print(f"Произошла ошибка при получении данных: {e}")
+        data = None  # Устанавливаем data в None в случае ошибки
+    return data
+
+
+def get_old_link(articles, connection):
+    if not articles:
+        return None
+    connection.row_factory = sqlite3.Row  # Устанавливаем row_factory для соединения
+    cursor = connection.cursor()
+
+    query = f"""
         SELECT *
         FROM images
         WHERE article IN (
-            SELECT DISTINCT article
-            FROM images
-            WHERE new_link IS NULL
-            LIMIT 5
+        {','.join([str(art) for art in articles])}
         )
     """
     try:
@@ -322,6 +388,23 @@ def clear_details_table(connection):
 
 import sqlite3
 
+def get_new_links(connection):
+    connection.row_factory = sqlite3.Row  # Устанавливаем row_factory для соединения
+    cursor = connection.cursor()
+    query = """
+        SELECT *
+        FROM images
+        WHERE new_link IS NOT NULL;
+    """
+    try:
+        cursor.execute(query)
+        data = cursor.fetchall()
+        data = [dict(row) for row in data] # Преобразуем каждый элемент sqlite3.Row в стандартный словарь
+    except sqlite3.Error as e:
+        print(f"Произошла ошибка при получении данных: {e}")
+        data = None  # Устанавливаем data в None в случае ошибки
+    return data
+
 def delete_rows_with_null_new_link(connection):
     connection.row_factory = sqlite3.Row  # Устанавливаем row_factory для соединения
     cursor = connection.cursor()
@@ -338,7 +421,8 @@ def delete_rows_with_null_new_link(connection):
         connection.rollback()  # Откатываем изменения в случае ошибки
 
 def main():
-    connection = sqlite3.connect('database/goldapple.db')
+    db_path = os.path.join(os.path.dirname(__file__), 'database', 'goldapple.db')
+    connection = sqlite3.connect(db_path)
     images_list = pd.read_excel('old_links6.xlsx')['article','images'].tolist()
     save_images_old_links(connection, images_list)
     connection.close()
