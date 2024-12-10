@@ -213,8 +213,8 @@ def close_sftp_server(ssh, sftp):
 
 
 @log_time_async
-async def upload_images_to_server(connection):
-    articles = db.get_old_link_articles(connection)
+async def upload_images_to_server(connection, article_list=None):
+    articles = db.get_old_link_articles(connection, article_list)
 
     if articles is None:
         logger.error("Не могу собрать изображения")

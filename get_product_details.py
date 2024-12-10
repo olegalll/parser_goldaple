@@ -4,6 +4,7 @@ import time
 import alarm_bot
 import glob
 import json
+import asyncio
 import pandas as pd
 import db
 from tqdm import tqdm
@@ -231,22 +232,32 @@ def get_links(exists_articles=None):
         except Exception as e:
             print(f"Error reading file {filename}: {e}")
 
-    links = list(set(links_articles.values()))
+    links = []
+    articles = []
+    for key, val in links_articles.items():
+        if val not in links:
+            links.append(val)
+        if key not in articles:
+            articles.append(key)
+    links = list(set(links))
+    articles = list(set(articles))
 
-    return links
+    return links, articles
 
 def main():
     connection = db.connection()
+    # db.delete_rows_with_null_new_link(connection)
 
     # Если нужно пересобрать заново все детали закомментировать иначе будет поиск только для новых артикулов, которых нет в базе
     exists_articles_with_details_and_images = db.get_exists_article_details(connection)
     print(f"Exists articles {len(exists_articles_with_details_and_images)}")
 
-    links_list = get_links(exists_articles_with_details_and_images)
+    links_list, articles_list = get_links(exists_articles_with_details_and_images)
     print(f"New links {len(links_list)}")
+    print(f"New articles {len(articles_list)}")
 
     parsing_product_details(links_list, connection)
-    # asyncio.run(upload_images_to_server(connection))
+    # asyncio.run(upload_images_to_server(connection, articles_list))
 
     # Закрываем коннект к базе данных
     db.close_connection(connection)

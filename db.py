@@ -318,17 +318,27 @@ def get_cnt_images_null(connection):
         print(f"get_cnt_images: {e}")
     return result
 
-def get_old_link_articles(connection):
+def get_old_link_articles(connection, article_list=None):
     connection.row_factory = sqlite3.Row  # Устанавливаем row_factory для соединения
     cursor = connection.cursor()
-    query = """
-        SELECT DISTINCT article
-        FROM images
-        WHERE new_link IS NULL
-    """
+    if article_list:
+        query = f"""
+            SELECT DISTINCT article, old_link
+            FROM images
+            WHERE new_link IS NULL and article IN (
+        {','.join([str(art) for art in article_list])}
+        )
+        """
+    else:
+        query = """
+            SELECT DISTINCT article, old_link
+            FROM images
+            WHERE new_link IS NULL
+        """
     try:
         cursor.execute(query)
         data = cursor.fetchall()
+        print({row["article"]: dict(row) for row in data})
         data = [row["article"] for row in data]
     except sqlite3.Error as e:
         print(f"Произошла ошибка при получении данных: {e}")
