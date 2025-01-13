@@ -257,7 +257,7 @@ def main():
     print(f"New articles {len(articles_list)}")
 
     parsing_product_details(links_list, connection)
-    # asyncio.run(upload_images_to_server(connection, articles_list))
+    asyncio.run(upload_images_to_server(connection, articles_list))
 
     # Закрываем коннект к базе данных
     db.close_connection(connection)

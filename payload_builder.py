@@ -15,8 +15,8 @@ class PayloadBuilder:
         self.payload.update({'pageNumber': page_number})
         return self
     
-    def set_filters(self, amount_min: int = 22, amount_max: int = 4053):      
-        self.payload.update(self._get_filter(amount_min, amount_max))
+    def set_filters(self, amount_min: int = 22, amount_max: int = 4053, special_filters=None):
+        self.payload.update(self._get_filter(amount_min, amount_max, special_filters))
         return self
 
     def get_payload(self):
@@ -26,8 +26,8 @@ class PayloadBuilder:
     #     self.payload.update(self._func())
     #     return self
 
-    def _get_filter(self, amount_min, amount_max):
-        return {
+    def _get_filter(self, amount_min, amount_max, special_filters):
+        filters = {
             "filters":[
                 {
                     "currentMinValue":{
@@ -60,6 +60,11 @@ class PayloadBuilder:
                 },
             ]
         }
+        if special_filters:
+            for fil in special_filters:
+                filters["filters"].append(fil)
+        return filters
+
     def _get_geo(self):
         return {
             "cityId":"0c5b2444-70a0-4932-980c-b4dc0d3f02b5",
@@ -69,6 +74,11 @@ class PayloadBuilder:
                 "EKB-000000437"
             ],
         }
+        # return {
+        #     "cityId":"0c5b2444-70a0-4932-980c-b4dc0d3f02b5",
+        #     "cityDistrict":None,
+        #     "geoPolygons":[],
+        # }
 
 
 {"itemId":"19000003031","cityId":"0c5b2444-70a0-4932-980c-b4dc0d3f02b5","cityDistrict":"Чертаново Южное","geoPolygons":["EKB-000000370","EKB-000000437"]}
